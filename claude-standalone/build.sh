@@ -1,21 +1,14 @@
 #!/bin/bash
-
-# Claude Security Container - Build and Run Script
-
 set -e
+set -u
 
-echo "🔨 Building Opencode Container..."
+echo "🔨 Building Container..."
+if [[ $# -gt 0 ]]; then
+  echo "⚙️ Additional args: $@"
+fi
 
-# Build the container
-docker build -t opencode-container .
-
+docker build "$@" -t opencode-container .
+echo
 echo "✅ Container built successfully!"
-
-# Create output directory if it doesn't exist
-
-echo "📋 Usage examples:"
-echo ""
-echo "1. Interactive shell:"
+echo "You can now run an interactive shell with:"
 echo "   ./run_opencode.sh"
-echo ""
-echo "Container is ready! Use the scripts above to get started."

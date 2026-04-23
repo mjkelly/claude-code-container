@@ -4,17 +4,13 @@
 set -e
 
 # Collect all arguments to pass to Claude
-CLAUDE_ARGS=("$@")
+COMMAND_ARGS=("$@")
 
 # Fixed paths - no argument parsing needed
 INPUT_DIR="$(pwd)"
 DATA_DIR="$HOME/projects/container-data"
 
-if [ -z "$OPENCODE_API_KEY" ]; then
-    echo "⚠️  Warning: OPENCODE_API_KEY not set. Opencode may not work properly."
-    echo "   Set it with: export OPENCODE_API_KEY='your-oauth-token'"
-    echo ""
-fi
+GUEST_WORKSPACE="/home/opencode"
 
 # Build Docker run command with enhanced security
 DOCKER_ARGS=(
@@ -35,30 +31,27 @@ DOCKER_ARGS=(
     # https://www.redhat.com/en/blog/rootless-podman-user-namespace-modes
     "--userns=keep-id"
     # XXX Volume mounts
-    "-v" "$INPUT_DIR:/workspace/work:Z"
-    "-v" "opencode-local-share:/home/opencode/.local/share/opencode"
-    "-v" "opencode-local-state:/home/opencode/.local/state/opencode"
-    "-v" "opencode-config:/home/opencode/.config/opencode"
-    "-v" "opencode-cache:/home/opencode/.cache/opencode"
+    "-v" "${INPUT_DIR}:${GUEST_WORKSPACE}/work:Z"
+    "-v" "opencode-local-share:${GUEST_WORKSPACE}/.local/share/opencode"
+    "-v" "opencode-local-state:${GUEST_WORKSPACE}/.local/state/opencode"
+    "-v" "opencode-config:${GUEST_WORKSPACE}/.config/opencode"
+    "-v" "opencode-cache:${GUEST_WORKSPACE}/.cache/opencode"
     "-e" "OPENCODE_API_KEY=${OPENCODE_API_KEY:-}"
     "-e" "EDITOR=vim"
-    # "-v" "$INPUT_DIR:/workspace/input:ro"
 )
 
 # Add data directory if it exists
 if [ -d "$DATA_DIR" ]; then
-    DOCKER_ARGS+=("-v" "$DATA_DIR:/workspace/data:ro")
-    echo "📚 Using reference data from: $DATA_DIR"
+    DOCKER_ARGS+=("-v" "${DATA_DIR}:${GUEST_WORKSPACE}/data:ro")
+    echo "📚 Data dir: ${DATA_DIR}"
 fi
 
-echo "🚀 Starting Claude Code in interactive mode..."
-echo "📁 Work dir: $INPUT_DIR"
-echo "📁 Container data dir: $DATA_DIR"
-# echo "📊 Output: $(pwd)/reports"
-if [[ ${#CLAUDE_ARGS[@]} -gt 0 ]]; then
-    echo "🔧 Claude options: ${CLAUDE_ARGS[*]}"
+echo "🚀 Starting..."
+echo "📁 Work dir: ${INPUT_DIR}"
+if [[ ${#COMMAND_ARGS[@]} -gt 0 ]]; then
+    echo "🔧 Extra args: ${COMMAND_ARGS[*]}"
 fi
 echo ""
 
 # Run the container with Claude Code in interactive mode, passing through any additional arguments
-docker "${DOCKER_ARGS[@]}" opencode-container "${CLAUDE_ARGS[@]}"
+docker "${DOCKER_ARGS[@]}" opencode-container "${COMMAND_ARGS[@]}"

@@ -23,39 +23,19 @@ RUN find / -xdev -perm -4000 -type f -exec chmod u-s {} \; 2>/dev/null || true \
     && rm -f /usr/bin/nc /usr/bin/netcat /bin/netstat /usr/bin/ss || true
 
 
-# Install basic Python tools
-RUN pip3 install --no-cache-dir --break-system-packages \
-    requests \
-    python-dotenv
+# Python development tools (system packages)
+RUN apt-get install -y --no-install-recommends \
+    black mypy python3-absl \
+    python3-click python3-requests python3-dotenv python3-virtualenv
 
-# Install Python security tools
-# RUN pip3 install --no-cache-dir --break-system-packages \
-#     semgrep \
-#     solc-select
+# Node.js tools
+# RUN npm install -g --no-optional \
+#     typescript \
+#     ts-node \
+#     prettier \
+#     eslint \
+#     solhint
 
-# Python development tools
-RUN pip3 install --no-cache-dir --break-system-packages \
-    absl-py \
-    click
-
-# Setup solc-select with a default Solidity compiler
-# RUN solc-select install 0.8.20 && solc-select use 0.8.20
-
-# Install Node.js tools
-RUN npm install -g --no-optional \
-    typescript \
-    ts-node \
-    prettier \
-    eslint \
-    solhint
-
-# Install Foundry (Solidity toolkit)
-# RUN curl -L https://foundry.paradigm.xyz | bash
-# ENV PATH="/root/.foundry/bin:$PATH"
-# RUN /root/.foundry/bin/foundryup
-# RUN cp -r /root/.foundry /home/${USER_NAME}/ && chown -R ${USER_NAME}:${USER_NAME} /home/${USER_NAME}/
-
-# Install Claude Code
 RUN npm install -g opencode-ai
 
 ################ Configure MCP Providers  --->
@@ -70,60 +50,21 @@ RUN npm install -g opencode-ai
 
 ################# <--- Configure MCP Providers 
 
-# Setup secure workspace with proper permissions
-RUN mkdir -p /workspace/input \
-    && mkdir -p /workspace/output \
-    && mkdir -p /workspace/data \
-    && mkdir -p /workspace/temp \
-    && mkdir -p /workspace/mcp-servers \
-    && chown -R ${USER_NAME}:${USER_NAME} /workspace \
-    && chmod 755 /workspace \
-    && chmod 750 /workspace/input \
-    && chmod 750 /workspace/data \
-    && chmod 755 /workspace/output \
-    && chmod 755 /workspace/temp \
-    && chmod 755 /workspace/mcp-servers
+# Set up user home dir
+RUN mkdir \
+    /home/${USER_NAME}/data \
+    /home/${USER_NAME}/mcp-servers \
+    && chmod 750 /home/${USER_NAME} \
+    /home/${USER_NAME}/data \
+    /home/${USER_NAME}/mcp-servers
 
 
-# Copy the working Claude config
-# XXX
-# COPY --chown=${USER_NAME}:${USER_NAME} claude-config.json /home/${USER_NAME}/.claude.json
-#COPY --chown=${USER_NAME}:${USER_NAME} dot-claude /home/${USER_NAME}/.claude
+# Copy opencode config -- this is when we set up extensions, etc.
+COPY --chown=${USER_NAME}:${USER_NAME} opencode.json /home/${USER_NAME}/.config/opencode/opencode.json
 
-# Setup Claude configuration (as root, will switch to claude user)
-# XXX
-# RUN echo '#!/bin/bash\n\
-# set -e\n\
-# echo "Setting up Claude configuration..."\n\
-# \n\
-# # Switch to claude user for configuration\n\
-# su - claude << "EOF_CLAUDE_USER"\n\
-# set -e\n\
-# cd /workspace\n\
-# \n\
-# # Copy the pre-configured Claude config\n\
-# cp /tmp/claude-config.json ~/.claude.json\n\
-# \n\
-# # Create .claude directory and copy settings.local.json\n\
-# mkdir -p ~/.claude\n\
-# cp /tmp/settings.local.json ~/.claude/settings.local.json\n\
-# mkdir -p /workspace/.claude\n\
-# cp /tmp/settings.local.json /workspace/.claude/settings.local.json\n\
-# \n\
-# echo "Claude configuration complete"\n\
-# ls -la ~/.claude.json\n\
-# ls -la ~/.claude/settings.local.json\n\
-# ls -la /workspace/.claude/settings.local.json\n\
-# \n\
-# EOF_CLAUDE_USER\n\
-# \n\
-# ' > /usr/local/bin/configure-claude.sh \
-#     && chmod +x /usr/local/bin/configure-claude.sh \
-#     && /usr/local/bin/configure-claude.sh
-
-# Second stage of installation (separate layer)
+# Second stage of installation (separate layer of more volatile stuff)
 RUN apt-get install -y --no-install-recommends \
-    vim
+    vim less silversearcher-ag
 
 # Cleanup from installation
 RUN rm -rf /var/lib/apt/lists/* \
@@ -133,7 +74,9 @@ RUN rm -rf /var/lib/apt/lists/* \
 
 # Switch to non-root user for security
 USER ${USER_NAME}
-WORKDIR /workspace
+# NOTE: This directory does not exist on the image! You must mount something
+# here. (run_opencode.sh handles this.)
+WORKDIR /home/${USER_NAME}/work
 
 # Create simple startup script for runtime
 RUN echo '#!/bin/bash\n\
@@ -157,11 +100,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
     RLIMIT_NOFILE=1024 \
     # Prevent ptrace (debugging other processes)
     YAMA_PTRACE_SCOPE=1
-
-# Add security labels
-LABEL security.non-root=true \
-      security.hardened=true \
-      security.version="1.0"
 
 # Security: Use dumb-init for proper signal handling and process reaping
 ENTRYPOINT ["dumb-init", "--", "/home/opencode/start-opencode.sh"]
