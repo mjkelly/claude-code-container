@@ -35,9 +35,10 @@ DOCKER_ARGS=(
     "--network=bridge"
     "--add-host=host.docker.internal:127.0.0.1"
     # Volume mounts
-    "-v" "$INPUT_DIR:/workspace/input:ro"
-    "-v" "$(pwd)/reports:/workspace/output:rw"
+    "-v" "$INPUT_DIR:/workspace:Z"
     "-e" "CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN:-}"
+    # "-v" "$INPUT_DIR:/workspace/input:ro"
+    # "-v" "$(pwd)/reports:/workspace/output:rw"
 )
 
 # Add data directory if it exists
@@ -47,8 +48,8 @@ if [ -d "$DATA_DIR" ]; then
 fi
 
 echo "🚀 Starting Claude Code in interactive mode..."
-echo "📁 Input: $INPUT_DIR"
-echo "📊 Output: $(pwd)/reports"
+echo "📁 Work dir: $INPUT_DIR"
+# echo "📊 Output: $(pwd)/reports"
 if [[ ${#CLAUDE_ARGS[@]} -gt 0 ]]; then
     echo "🔧 Claude options: ${CLAUDE_ARGS[*]}"
 fi
