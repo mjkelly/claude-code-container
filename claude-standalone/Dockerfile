@@ -4,7 +4,7 @@ FROM debian:trixie-slim
 # XXX in order to edit common files, use host's uid
 # TODO: figure out a way to share files that avoids this
 ARG USER_ID=1000
-ARG USER_NAME=claude
+ARG USER_NAME=opencode
 
 # Create non-root user with specific UID/GID
 RUN groupadd -g ${USER_ID} ${USER_NAME} && \
@@ -56,7 +56,7 @@ RUN npm install -g --no-optional \
 # RUN cp -r /root/.foundry /home/${USER_NAME}/ && chown -R ${USER_NAME}:${USER_NAME} /home/${USER_NAME}/
 
 # Install Claude Code
-RUN npm install -g @anthropic-ai/claude-code
+RUN npm install -g opencode-ai
 
 ################ Configure MCP Providers  --->
 
@@ -87,7 +87,7 @@ RUN mkdir -p /workspace/input \
 
 # Copy the working Claude config
 # XXX
-COPY --chown=${USER_NAME}:${USER_NAME} claude-config.json /home/${USER_NAME}/.claude.json
+# COPY --chown=${USER_NAME}:${USER_NAME} claude-config.json /home/${USER_NAME}/.claude.json
 #COPY --chown=${USER_NAME}:${USER_NAME} dot-claude /home/${USER_NAME}/.claude
 
 # Setup Claude configuration (as root, will switch to claude user)
@@ -138,12 +138,13 @@ WORKDIR /workspace
 # Create simple startup script for runtime
 RUN echo '#!/bin/bash\n\
 set -e\n\
-echo "Starting Claude Code..."\n\
+set -x\n\
+echo "Starting Opencode..."\n\
+export TMPDIR=~/.local/share/opencode\n\
 # Use environment variable for API key\n\
-# Run Claude Code with dangerous skip permissions for jailfree mode\n\
-exec claude --dangerously-skip-permissions "$@"\n\
-' > /home/${USER_NAME}/start-claude.sh \
-    && chmod +x /home/${USER_NAME}/start-claude.sh
+exec opencode "$@"\n\
+' > /home/${USER_NAME}/start-opencode.sh \
+    && chmod +x /home/${USER_NAME}/start-opencode.sh
 
 # Security: Set secure environment variables and limits
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -163,4 +164,4 @@ LABEL security.non-root=true \
       security.version="1.0"
 
 # Security: Use dumb-init for proper signal handling and process reaping
-ENTRYPOINT ["dumb-init", "--", "/home/claude/start-claude.sh"]
+ENTRYPOINT ["dumb-init", "--", "/home/opencode/start-opencode.sh"]

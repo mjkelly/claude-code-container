@@ -10,9 +10,9 @@ CLAUDE_ARGS=("$@")
 INPUT_DIR="$(pwd)"
 DATA_DIR="$HOME/projects/container-data"
 
-if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
-    echo "⚠️  Warning: CLAUDE_CODE_OAUTH_TOKEN not set. Claude Code may not work properly."
-    echo "   Set it with: export CLAUDE_CODE_OAUTH_TOKEN='your-oauth-token'"
+if [ -z "$OPENCODE_API_KEY" ]; then
+    echo "⚠️  Warning: OPENCODE_API_KEY not set. Opencode may not work properly."
+    echo "   Set it with: export OPENCODE_API_KEY='your-oauth-token'"
     echo ""
 fi
 
@@ -36,8 +36,11 @@ DOCKER_ARGS=(
     "--userns=keep-id"
     # XXX Volume mounts
     "-v" "$INPUT_DIR:/workspace/work:Z"
-    "-v" "dot-claude-vol:/home/claude/.claude"
-    "-e" "CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN:-}"
+    "-v" "opencode-local-share:/home/opencode/.local/share/opencode"
+    "-v" "opencode-local-state:/home/opencode/.local/state/opencode"
+    "-v" "opencode-config:/home/opencode/.config/opencode"
+    "-v" "opencode-cache:/home/opencode/.cache/opencode"
+    "-e" "OPENCODE_API_KEY=${OPENCODE_API_KEY:-}"
     "-e" "EDITOR=vim"
     # "-v" "$INPUT_DIR:/workspace/input:ro"
 )
@@ -58,4 +61,4 @@ fi
 echo ""
 
 # Run the container with Claude Code in interactive mode, passing through any additional arguments
-docker "${DOCKER_ARGS[@]}" claude-code-container "${CLAUDE_ARGS[@]}"
+docker "${DOCKER_ARGS[@]}" opencode-container "${CLAUDE_ARGS[@]}"

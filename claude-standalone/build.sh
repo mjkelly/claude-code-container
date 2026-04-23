@@ -4,10 +4,10 @@
 
 set -e
 
-echo "🔨 Building Claude Code Container..."
+echo "🔨 Building Opencode Container..."
 
 # Build the container
-docker build -t claude-code-container .
+docker build -t opencode-container .
 
 echo "✅ Container built successfully!"
 
@@ -16,6 +16,6 @@ echo "✅ Container built successfully!"
 echo "📋 Usage examples:"
 echo ""
 echo "1. Interactive shell:"
-echo "   ./run_claude.sh"
+echo "   ./run_opencode.sh"
 echo ""
 echo "Container is ready! Use the scripts above to get started."
