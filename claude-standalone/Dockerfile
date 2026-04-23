@@ -1,26 +1,27 @@
-FROM node:20-bookworm-slim
+FROM debian:trixie-slim
 
 # Security: Use specific user ID and avoid conflicts
-ARG USER_ID=1001
+# XXX in order to edit common files, use host's uid
+# TODO: figure out a way to share files that avoids this
+ARG USER_ID=1000
 ARG USER_NAME=claude
 
 # Create non-root user with specific UID/GID
 RUN groupadd -g ${USER_ID} ${USER_NAME} && \
     useradd -m -u ${USER_ID} -g ${USER_ID} -s /bin/bash ${USER_NAME}
 
-# Install system dependencies with security hardening
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install system dependencies
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends \
     git curl wget ca-certificates python3 python3-pip build-essential \
-    # Security packages
-    dumb-init \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /tmp/* \
-    && rm -rf /var/tmp/* \
-    # Remove unnecessary setuid binaries
-    && find / -xdev -perm -4000 -type f -exec chmod u-s {} \; 2>/dev/null || true \
+    npm dumb-init
+
+# Remove unnecessary setuid binaries
+RUN find / -xdev -perm -4000 -type f -exec chmod u-s {} \; 2>/dev/null || true \
     && find / -xdev -perm -2000 -type f -exec chmod g-s {} \; 2>/dev/null || true \
     # Remove network tools that could be used for reconnaissance (but keep essential shells)
     && rm -f /usr/bin/nc /usr/bin/netcat /bin/netstat /usr/bin/ss || true
+
 
 # Install basic Python tools
 RUN pip3 install --no-cache-dir --break-system-packages \
@@ -28,12 +29,17 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     python-dotenv
 
 # Install Python security tools
+# RUN pip3 install --no-cache-dir --break-system-packages \
+#     semgrep \
+#     solc-select
+
+# Python development tools
 RUN pip3 install --no-cache-dir --break-system-packages \
-    semgrep \
-    solc-select
+    absl-py \
+    click
 
 # Setup solc-select with a default Solidity compiler
-RUN solc-select install 0.8.20 && solc-select use 0.8.20
+# RUN solc-select install 0.8.20 && solc-select use 0.8.20
 
 # Install Node.js tools
 RUN npm install -g --no-optional \
@@ -44,10 +50,10 @@ RUN npm install -g --no-optional \
     solhint
 
 # Install Foundry (Solidity toolkit)
-RUN curl -L https://foundry.paradigm.xyz | bash
-ENV PATH="/root/.foundry/bin:$PATH"
-RUN /root/.foundry/bin/foundryup
-RUN cp -r /root/.foundry /home/${USER_NAME}/ && chown -R ${USER_NAME}:${USER_NAME} /home/${USER_NAME}/
+# RUN curl -L https://foundry.paradigm.xyz | bash
+# ENV PATH="/root/.foundry/bin:$PATH"
+# RUN /root/.foundry/bin/foundryup
+# RUN cp -r /root/.foundry /home/${USER_NAME}/ && chown -R ${USER_NAME}:${USER_NAME} /home/${USER_NAME}/
 
 # Install Claude Code
 RUN npm install -g @anthropic-ai/claude-code
@@ -80,43 +86,54 @@ RUN mkdir -p /workspace/input \
 
 
 # Copy the working Claude config
-COPY --chown=${USER_NAME}:${USER_NAME} claude-config.json /tmp/claude-config.json
-COPY --chown=${USER_NAME}:${USER_NAME} settings.local.json /tmp/settings.local.json
+# XXX
+COPY --chown=${USER_NAME}:${USER_NAME} claude-config.json /home/${USER_NAME}/.claude.json
+#COPY --chown=${USER_NAME}:${USER_NAME} dot-claude /home/${USER_NAME}/.claude
 
 # Setup Claude configuration (as root, will switch to claude user)
-RUN echo '#!/bin/bash\n\
-set -e\n\
-echo "Setting up Claude configuration..."\n\
-\n\
-# Switch to claude user for configuration\n\
-su - claude << "EOF_CLAUDE_USER"\n\
-set -e\n\
-cd /workspace\n\
-\n\
-# Copy the pre-configured Claude config\n\
-cp /tmp/claude-config.json ~/.claude.json\n\
-\n\
-# Create .claude directory and copy settings.local.json\n\
-mkdir -p ~/.claude\n\
-cp /tmp/settings.local.json ~/.claude/settings.local.json\n\
-mkdir -p /workspace/.claude\n\
-cp /tmp/settings.local.json /workspace/.claude/settings.local.json\n\
-\n\
-echo "Claude configuration complete"\n\
-ls -la ~/.claude.json\n\
-ls -la ~/.claude/settings.local.json\n\
-ls -la /workspace/.claude/settings.local.json\n\
-\n\
-EOF_CLAUDE_USER\n\
-\n\
-' > /usr/local/bin/configure-claude.sh \
-    && chmod +x /usr/local/bin/configure-claude.sh \
-    && /usr/local/bin/configure-claude.sh
+# XXX
+# RUN echo '#!/bin/bash\n\
+# set -e\n\
+# echo "Setting up Claude configuration..."\n\
+# \n\
+# # Switch to claude user for configuration\n\
+# su - claude << "EOF_CLAUDE_USER"\n\
+# set -e\n\
+# cd /workspace\n\
+# \n\
+# # Copy the pre-configured Claude config\n\
+# cp /tmp/claude-config.json ~/.claude.json\n\
+# \n\
+# # Create .claude directory and copy settings.local.json\n\
+# mkdir -p ~/.claude\n\
+# cp /tmp/settings.local.json ~/.claude/settings.local.json\n\
+# mkdir -p /workspace/.claude\n\
+# cp /tmp/settings.local.json /workspace/.claude/settings.local.json\n\
+# \n\
+# echo "Claude configuration complete"\n\
+# ls -la ~/.claude.json\n\
+# ls -la ~/.claude/settings.local.json\n\
+# ls -la /workspace/.claude/settings.local.json\n\
+# \n\
+# EOF_CLAUDE_USER\n\
+# \n\
+# ' > /usr/local/bin/configure-claude.sh \
+#     && chmod +x /usr/local/bin/configure-claude.sh \
+#     && /usr/local/bin/configure-claude.sh
+
+# Second stage of installation (separate layer)
+RUN apt-get install -y --no-install-recommends \
+    vim
+
+# Cleanup from installation
+RUN rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* \
+    && rm -rf /var/tmp/* \
+    && rm -rf /var/cache/apt/*
 
 # Switch to non-root user for security
 USER ${USER_NAME}
 WORKDIR /workspace
-ENV PATH="/home/${USER_NAME}/.foundry/bin:$PATH"
 
 # Create simple startup script for runtime
 RUN echo '#!/bin/bash\n\
@@ -144,10 +161,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
 LABEL security.non-root=true \
       security.hardened=true \
       security.version="1.0"
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-  CMD test -f ~/.claude/settings.json || exit 1
 
 # Security: Use dumb-init for proper signal handling and process reaping
 ENTRYPOINT ["dumb-init", "--", "/home/claude/start-claude.sh"]

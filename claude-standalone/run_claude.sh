@@ -8,16 +8,13 @@ CLAUDE_ARGS=("$@")
 
 # Fixed paths - no argument parsing needed
 INPUT_DIR="$(pwd)"
-DATA_DIR="workspace/data"
+DATA_DIR="$HOME/projects/container-data"
 
 if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
     echo "⚠️  Warning: CLAUDE_CODE_OAUTH_TOKEN not set. Claude Code may not work properly."
     echo "   Set it with: export CLAUDE_CODE_OAUTH_TOKEN='your-oauth-token'"
     echo ""
 fi
-
-# Create reports directory
-mkdir -p reports
 
 # Build Docker run command with enhanced security
 DOCKER_ARGS=(
@@ -28,17 +25,21 @@ DOCKER_ARGS=(
     "--security-opt=no-new-privileges:true"
     # Security: Non-executable temp filesystem
     "--tmpfs" "/tmp:noexec,nosuid,size=100m"
-    "--tmpfs" "/workspace/temp:noexec,nosuid,size=2g"
+    # "--tmpfs" "/workspace/temp:noexec,nosuid,size=2g"
     # Security: Limit PIDs to prevent fork bombs
     "--pids-limit=100"
     # Security: Restrict network to external only (no host network access)
     "--network=bridge"
     "--add-host=host.docker.internal:127.0.0.1"
-    # Volume mounts
-    "-v" "$INPUT_DIR:/workspace:Z"
+    # XXX map user as itself into the container
+    # https://www.redhat.com/en/blog/rootless-podman-user-namespace-modes
+    "--userns=keep-id"
+    # XXX Volume mounts
+    "-v" "$INPUT_DIR:/workspace/work:Z"
+    "-v" "dot-claude-vol:/home/claude/.claude"
     "-e" "CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN:-}"
+    "-e" "EDITOR=vim"
     # "-v" "$INPUT_DIR:/workspace/input:ro"
-    # "-v" "$(pwd)/reports:/workspace/output:rw"
 )
 
 # Add data directory if it exists
@@ -49,6 +50,7 @@ fi
 
 echo "🚀 Starting Claude Code in interactive mode..."
 echo "📁 Work dir: $INPUT_DIR"
+echo "📁 Container data dir: $DATA_DIR"
 # echo "📊 Output: $(pwd)/reports"
 if [[ ${#CLAUDE_ARGS[@]} -gt 0 ]]; then
     echo "🔧 Claude options: ${CLAUDE_ARGS[*]}"
