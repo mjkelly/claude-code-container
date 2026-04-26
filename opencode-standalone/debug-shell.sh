@@ -12,7 +12,8 @@ set -e
 # Set defaults
 INPUT_DIR="$(pwd)"
 
-source "$(dirname "$0")/common.sh"
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+source "${SCRIPT_DIR}/common.sh"
 
 # Build Docker run command
 DOCKER_ARGS=("${BASE_DOCKER_ARGS[@]}")

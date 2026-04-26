@@ -10,7 +10,8 @@ COMMAND_ARGS=("$@")
 INPUT_DIR="$(pwd)"
 DATA_DIR="$HOME/projects/container-data"
 
-source "$(dirname "$0")/common.sh"
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+source "${SCRIPT_DIR}/common.sh"
 
 # Build Docker run command with enhanced security
 DOCKER_ARGS=("${BASE_DOCKER_ARGS[@]}")
