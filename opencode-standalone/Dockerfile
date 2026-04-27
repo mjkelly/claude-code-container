@@ -22,11 +22,15 @@ RUN find / -xdev -perm -4000 -type f -exec chmod u-s {} \; 2>/dev/null || true \
     # Remove network tools that could be used for reconnaissance (but keep essential shells)
     && rm -f /usr/bin/nc /usr/bin/netcat /bin/netstat /usr/bin/ss || true
 
-
 # Python development tools (system packages)
 RUN apt-get install -y --no-install-recommends \
     black mypy python3-absl \
     python3-click python3-requests python3-dotenv python3-virtualenv
+
+# Go development environment
+RUN apt-get install -y --no-install-recommends \
+    golang
+
 
 # Node.js tools
 # RUN npm install -g --no-optional \
@@ -53,18 +57,25 @@ RUN npm install -g opencode-ai
 # Set up user home dir
 RUN mkdir \
     /home/${USER_NAME}/data \
+    /home/${USER_NAME}/.cache \
+    /home/${USER_NAME}/.local \
     /home/${USER_NAME}/mcp-servers \
     && chmod 750 /home/${USER_NAME} \
     /home/${USER_NAME}/data \
+    /home/${USER_NAME}/.cache \
+    /home/${USER_NAME}/.local \
     /home/${USER_NAME}/mcp-servers
 
+RUN chown ${USER_NAME}:${USER_NAME} \
+    /home/${USER_NAME}/.cache \
+    /home/${USER_NAME}/.local
 
 # Copy opencode config -- this is when we set up extensions, etc.
 COPY --chown=${USER_NAME}:${USER_NAME} opencode.json /home/${USER_NAME}/.config/opencode/opencode.json
 
 # Second stage of installation (separate layer of more volatile stuff)
 RUN apt-get install -y --no-install-recommends \
-    vim less silversearcher-ag
+    vim jq less silversearcher-ag
 
 # Cleanup from installation
 RUN rm -rf /var/lib/apt/lists/* \
