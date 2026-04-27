@@ -43,3 +43,6 @@ pip-log.txt
 *.pem
 *.crt
 secrets/
+
+# We commit an example, but the real one may contain API keys
+opencode-standalone/opencode.json
