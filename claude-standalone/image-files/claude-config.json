@@ -16,7 +16,7 @@
   "firstStartTime": "2025-08-18T19:55:22.726Z",
   "userID": "docker-user",
   "projects": {
-    "/workspace": {
+    "/home/claude/work": {
       "allowedTools": ["*"],
       "permissions": {
         "allow": [
@@ -35,7 +35,7 @@
           "mcp__*"
         ],
         "defaultMode": "acceptEdits",
-        "additionalDirectories": ["/workspace/input", "/workspace/output", "/workspace/data", "/workspace/temp"]
+        "additionalDirectories": ["/home/claude/data"]
       },
       "autoAcceptAllTools": true,
       "autoAcceptMcpTools": true,
