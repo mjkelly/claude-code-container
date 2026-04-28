@@ -25,6 +25,7 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+claude.env
 
 # Node modules (if any MCP servers are added)
 node_modules/
@@ -45,5 +46,6 @@ pip-log.txt
 secrets/
 
 # We commit an example, but the real config may contain API keys
-opencode-standalone/opencode.json
 opencode-standalone/image-files/opencode.json
+
+*/AGENTS.md
