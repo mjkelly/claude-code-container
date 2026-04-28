@@ -24,6 +24,5 @@ BASE_DOCKER_ARGS=(
     "-v" "opencode-local-state:${GUEST_WORKSPACE}/.local/state/opencode"
     "-v" "opencode-config:${GUEST_WORKSPACE}/.config/opencode"
     "-v" "opencode-cache:${GUEST_WORKSPACE}/.cache/opencode"
-    "-e" "OPENCODE_API_KEY=${OPENCODE_API_KEY:-}"
     "-e" "EDITOR=vim"
 )

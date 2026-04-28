@@ -1,5 +1,5 @@
-# Docker
-.dockerignore
+# Docker files at repo root
+/.dockerignore
 Dockerfile.bak
 
 # Build artifacts
@@ -44,5 +44,6 @@ pip-log.txt
 *.crt
 secrets/
 
-# We commit an example, but the real one may contain API keys
+# We commit an example, but the real config may contain API keys
 opencode-standalone/opencode.json
+opencode-standalone/image-files/opencode.json
